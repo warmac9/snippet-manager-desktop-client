@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import Navigation from './components/Navigation.vue'
 import Article from './components/Article.vue'
-import { reactive, ref, computed } from 'vue'
+import { computed, provide, reactive, ref } from 'vue'
 
 interface Article {
     id: number,
@@ -14,50 +14,53 @@ interface PrioritizedArticle {
     article: Article
 }
 
-const text = 'It was a cool scene to do. In a scene like this with such \n\n complexity, in order for everyo\nne to get a sort of base of \n organizati­on that they can work from, you have to storyboard.'
+
+const writeClipboard = {
+    articleByIndex: (index: number) => {
+        if(filteredArticles.value.length <= index) return
+        window.systemClipboard.write(filteredArticles.value[index].content)
+    },
+    articleById: (id: number) => {
+        let article = filteredArticles.value
+            .find(article => article.id == id)
+
+        if(article === undefined) return
+        window.systemClipboard.write(article.content)
+    }
+}
+
+provide('writeClipboard', writeClipboard)
+
 
 const articles: Article[] = reactive([
     {
         id: 1,
         title: 'skapo',
-        content: text
+        content: 'aaa'
     },
     {
         id: 2,
         title: 'skap',
-        content: text
+        content: 'bbb'
+    },
+    {
+        id: 3,
+        title: 'kap',
+        content: 'ccc'
     },
     {
         id: 4,
-        title: 'kap',
-        content: text
-    },
-    {
-        id: 3,
         title: 'kapo',
-        content: text
+        content: 'ddd'
     },
-    {
-        id: 3,
-        title: 'kapor',
-        content: text
-    },
-    ...Array(10).fill({
-        id: 3,
-        title: 'kako',
-        content: text
-    })
 ])
+
 
 const searchQuery = ref("")
 
 const filteredArticles = computed<Article[]>(() => {
     if (searchQuery.value.length == 0)
         return articles
-
-    if (searchQuery.value.length == 1)
-        return articles
-            .filter((article) => article.title.startsWith(searchQuery.value))
 
     let prioritizedArticles: PrioritizedArticle[] = []
 
@@ -95,6 +98,7 @@ const filteredArticles = computed<Article[]>(() => {
 })
 
 const noArticles = computed<boolean>(() => filteredArticles.value.length == 0)
+
 </script>
 
 <template>
@@ -105,6 +109,7 @@ const noArticles = computed<boolean>(() => filteredArticles.value.length == 0)
                 <Article
                     v-for="article in filteredArticles"
                     :key="article.id"
+                    :id="article.id"
                     :title="article.title"
                     :content="article.content"
                 ></Article>

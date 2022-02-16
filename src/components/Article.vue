@@ -1,7 +1,13 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, inject } from 'vue'
+
+const writeClipboard = inject('writeClipboard')
 
 const props = defineProps({
+    id: {
+        type: Number,
+        required: true
+    },
     title: {
         type: String,
         required: true
@@ -24,6 +30,7 @@ const preview = computed<string>(() => {
 
 <template>
     <article
+        @click="writeClipboard.articleById(id)"
         class="grow p-3 bg-white border-3 border-black rounded-2xl shadow-lg hover:translate-y-1 cursor-pointer"
     >
         <div class="flex justify-between">
@@ -38,8 +45,8 @@ const preview = computed<string>(() => {
                 class="p-3 bg-gray-100 rounded-xl shadow-[inset_0px_4px] shadow-gray-200 overflow-hidden"
             >
                 <p
-                    class="w-1 font-verdana text-lg leading-6 whitespace-nowrap"
                     v-html="preview"
+                    class="w-1 font-verdana text-lg leading-6 whitespace-nowrap"
                 ></p>
             </section>
         </section>

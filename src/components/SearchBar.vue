@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { inject, ref, onMounted } from 'vue'
 
 defineEmits(['searchUpdate'])
+const writeClipboard = inject('writeClipboard')
 
 const searchQuery = ref('')
 const input = ref(null)
@@ -23,10 +24,11 @@ onMounted(() => {
     >
         <div class="grow pt-2">
             <input
+                v-model="searchQuery"
                 @input="$emit('searchUpdate', searchQuery)"
                 @keydown="focusInput"
                 @focusout="focusInput"
-                v-model="searchQuery"
+                @keyup.enter="writeClipboard.articleByIndex(0)"
                 ref="input"
                 class="w-full font-verdana text-3xl outline-none selection:bg-black selection:text-white"
                 maxlength="30"

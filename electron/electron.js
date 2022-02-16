@@ -1,5 +1,5 @@
 const path = require('path');
-const { app, BrowserWindow, globalShortcut, screen } = require('electron');
+const { app, BrowserWindow, globalShortcut, ipcMain, screen } = require('electron');
 const isDev = process.env.IS_DEV == "true" ? true : false;
 
 function createMainWindow() {
@@ -41,6 +41,10 @@ app.whenReady().then(() => {
       else
         mainWindow.show()
     })
+  })
+  
+  ipcMain.handle('hide-window', () => {
+    mainWindow.hide()
   })
 
   app.on('activate', function () {
