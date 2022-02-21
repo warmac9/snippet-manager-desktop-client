@@ -25,11 +25,11 @@ onMounted(() => {
         <div class="grow pt-2">
             <input
                 v-model="searchQuery"
+                ref="input"
                 @input="$emit('searchUpdate', searchQuery)"
                 @keydown="focusInput"
                 @focusout="focusInput"
                 @keyup.enter="writeClipboard.articleByIndex(0)"
-                ref="input"
                 class="w-full font-verdana text-3xl outline-none selection:bg-black selection:text-white"
                 maxlength="30"
                 placeholder="search"

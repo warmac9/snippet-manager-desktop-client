@@ -1,7 +1,9 @@
 <script setup lang="ts">
+import axios from 'axios'
 import Navigation from './components/Navigation.vue'
 import Article from './components/Article.vue'
-import { computed, provide, reactive, ref } from 'vue'
+import { computed, onMounted, provide, reactive, ref } from 'vue'
+import { UPDATE_SNIPPET_INTERVAL_MSEC, URL_SNIPPET_MANAGER_API } from './config'
 
 interface Article {
     id: number,
@@ -32,39 +34,77 @@ const writeClipboard = {
 provide('writeClipboard', writeClipboard)
 
 
-const articles: Article[] = reactive([
-    {
-        id: 1,
-        title: 'skapo',
-        content: 'aaa'
+const articles = ref<Article[]>([])
+
+const storage = {
+    get articles() {
+        let data = localStorage.getItem('articles')
+        if(data == null) return data
+        return JSON.parse(data)
     },
-    {
-        id: 2,
-        title: 'skap',
-        content: 'bbb'
-    },
-    {
-        id: 3,
-        title: 'kap',
-        content: 'ccc'
-    },
-    {
-        id: 4,
-        title: 'kapo',
-        content: 'ddd'
-    },
-])
+    set articles(val) {
+        if(typeof val !== 'string')
+            val = JSON.stringify(val)
+        localStorage.setItem('articles', val)
+    }
+}
+
+const mapArticlesFromApi = (data): Article[] => {
+    return data.map(article => 
+        ({
+            id: article.id,
+            title: article.title,
+            content: article.content
+        }))
+}
+
+const fetchArticles = async () => {
+    let res;
+    try {
+        res = await axios.get(`${URL_SNIPPET_MANAGER_API}/snippet`)
+    } catch (error) {
+        return
+    }
+
+    if(res == undefined || res.status != 200) return
+    let articlesApi = mapArticlesFromApi(res.data)
+
+    if(JSON.stringify(storage.articles) != JSON.stringify(articlesApi)) {
+        storage.articles = articlesApi
+        articles.value = articlesApi
+    }
+}
+
+const wait = (msec: number) => new Promise((resolve, reject) => {
+    setTimeout(() => {
+        resolve(null)
+    }, msec)
+})
+
+const autoUpdateArticles = async () => {
+    while(1) {
+        fetchArticles()
+        await wait(UPDATE_SNIPPET_INTERVAL_MSEC)
+    }
+}
+
+onMounted(async () => {
+    if(storage.articles != null)
+        articles.value = storage.articles
+
+    autoUpdateArticles()
+})
 
 
 const searchQuery = ref("")
 
 const filteredArticles = computed<Article[]>(() => {
     if (searchQuery.value.length == 0)
-        return articles
+        return articles.value
 
     let prioritizedArticles: PrioritizedArticle[] = []
 
-    articles.forEach(article => {
+    articles.value.forEach(article => {
         if(article.title.includes(searchQuery.value)) {
             let numNotMatched = article.title.length - searchQuery.value.length
             if(article.title.startsWith(searchQuery.value))
@@ -113,8 +153,13 @@ const noArticles = computed<boolean>(() => filteredArticles.value.length == 0)
                     :title="article.title"
                     :content="article.content"
                 ></Article>
+                <article 
+                    v-if="noArticles"
+                    class="p-3 bg-gray-200 rounded-2xl shadow-[inset_0px_4px] shadow-gray-300 overflow-hidden"
+                >
+                    <span class="font-verdana text-xl"> No snippets to show </span>
+                </article>
             </section>
-            <span v-if="noArticles" class="p-5 text-3xl text-gray-500">No snippets to show</span>
         </section>
     </div>
 </template>
