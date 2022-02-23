@@ -1,19 +1,18 @@
 <script setup lang="ts">
 import axios from 'axios'
-import Navigation from './components/Navigation.vue'
+
 import Article from './components/Article.vue'
+import Navigation from './components/Navigation.vue'
 import { computed, onMounted, provide, reactive, ref } from 'vue'
+
+import { filterArticles } from './modules/filterArticles'
 import { UPDATE_SNIPPET_INTERVAL_MSEC, URL_SNIPPET_MANAGER_API } from './config'
 
-interface Article {
+
+interface IArticle {
     id: number,
     title: string,
     content: string
-}
-
-interface PrioritizedArticle {
-    priority: number[],
-    article: Article
 }
 
 
@@ -34,7 +33,7 @@ const writeClipboard = {
 provide('writeClipboard', writeClipboard)
 
 
-const articles = ref<Article[]>([])
+const articles = ref<IArticle[]>([])
 
 const storage = {
     get articles() {
@@ -49,7 +48,8 @@ const storage = {
     }
 }
 
-const mapArticlesFromApi = (data): Article[] => {
+
+const mapArticlesFromApi = (data): IArticle[] => {
     return data.map(article => 
         ({
             id: article.id,
@@ -75,6 +75,7 @@ const fetchArticles = async () => {
     }
 }
 
+
 const wait = (msec: number) => new Promise((resolve, reject) => {
     setTimeout(() => {
         resolve(null)
@@ -98,43 +99,11 @@ onMounted(async () => {
 
 const searchQuery = ref("")
 
-const filteredArticles = computed<Article[]>(() => {
+const filteredArticles = computed<IArticle[]>(() => {
     if (searchQuery.value.length == 0)
         return articles.value
 
-    let prioritizedArticles: PrioritizedArticle[] = []
-
-    articles.value.forEach(article => {
-        if(article.title.includes(searchQuery.value)) {
-            let numNotMatched = article.title.length - searchQuery.value.length
-            if(article.title.startsWith(searchQuery.value))
-                prioritizedArticles.push({
-                    priority: [
-                        2,
-                        -numNotMatched
-                    ],
-                    article: article
-                })
-            else
-                prioritizedArticles.push({
-                    priority: [
-                        1,
-                        -numNotMatched
-                    ],
-                    article: article
-                })
-        }
-    })
-
-    return prioritizedArticles
-        .sort(({ priority: a }, { priority: b }) => {
-            for (let index = 0; index < Math.min(a.length, b.length); index++) {
-                if(a[index] == b[index]) continue
-                return a[index] > b[index] ? -1 : 1
-            }
-            return -1
-        })
-        .map(priorityArticle => priorityArticle.article)
+    return filterArticles(articles.value, searchQuery.value)
 })
 
 const noArticles = computed<boolean>(() => filteredArticles.value.length == 0)
