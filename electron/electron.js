@@ -10,10 +10,14 @@ function createMainWindow() {
     width: Math.min(1000, width),
     height: Math.min(620, height),
     webPreferences: {
+      devTools: isDev,
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: true,
     },
     frame: false,
+    maximizable: false,
+    minimizable: false,
+    resizable: false,
     skipTaskbar: true,
     show: false
   });
