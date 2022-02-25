@@ -18,7 +18,7 @@ interface IArticle {
 
 const writeClipboard = {
     articleByIndex: (index: number) => {
-        if(filteredArticles.value.length <= index) return
+        if(index < 0 || filteredArticles.value.length <= index) return
         window.systemClipboard.write(filteredArticles.value[index].content)
     },
     articleById: (id: number) => {
