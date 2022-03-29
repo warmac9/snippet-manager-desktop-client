@@ -1,8 +1,13 @@
 <script setup lang="ts">
 import Searchbar from './SearchBar.vue'
 import Button from './Button.vue'
+import { inject } from 'vue'
 
 defineEmits(['searchUpdate'])
+
+const openBrowserManager = () => {
+    window.openBrowser.manager()
+}
 </script>
 
 <template>
@@ -10,7 +15,12 @@ defineEmits(['searchUpdate'])
         <Searchbar 
             @searchUpdate="(searchQuery) => $emit('searchUpdate', searchQuery)"
         ></Searchbar>
-        <Button title="Modify"></Button>
-        <Button title="Help"></Button>
+        <Button 
+            title="Modify"
+            @click="openBrowserManager()"
+        ></Button>
+        <Button 
+            title="Help"
+        ></Button>
     </nav>
 </template>

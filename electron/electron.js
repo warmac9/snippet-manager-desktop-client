@@ -51,6 +51,10 @@ app.whenReady().then(() => {
     mainWindow.hide()
   })
 
+  ipcMain.handle('open-browser', (event, arg) => {
+    require('electron').shell.openExternal(arg);
+  })
+
   app.on('activate', function () {
     // On macOS it's common to re-create a window in the app when the
     // dock icon is clicked and there are no other windows open.
