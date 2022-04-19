@@ -9,6 +9,24 @@ contextBridge.exposeInMainWorld('systemClipboard', {
 
 contextBridge.exposeInMainWorld('openBrowser', {
   manager: () => {
-    ipcRenderer.invoke('open-browser', `https://google.com`)
+    store.set('google', 'https://google.com')
+    ipcRenderer.invoke('open-browser', store.get('google'))
   }
+})
+
+contextBridge.exposeInMainWorld('userCredentials', {
+  getToken() {
+    ipcRenderer.invoke('storage-get', { key: 'token' }).then(res => {
+      return res
+    })
+  },
+  setToken(token) {
+    ipcRenderer.invoke('storage-set', { key: 'token', value: token })
+  }
+  // getEmail() {
+  //   return storage.get('creds.email')
+  // },
+  // setEmail(email) {
+  //   storage.set('creds.email', email)
+  // }
 })

@@ -1,6 +1,10 @@
 const path = require('path');
-const { app, BrowserWindow, globalShortcut, ipcMain, screen } = require('electron');
+const { app, BrowserWindow, globalShortcut, ipcMain, safeStorage, screen } = require('electron');
 const isDev = process.env.IS_DEV == "true" ? true : false;
+
+const Store = require('electron-store');
+const store = new Store();
+
 
 function createMainWindow() {
   const primaryDisplay = screen.getPrimaryDisplay()
@@ -53,6 +57,14 @@ app.whenReady().then(() => {
 
   ipcMain.handle('open-browser', (event, arg) => {
     require('electron').shell.openExternal(arg);
+  })
+
+  ipcMain.handle('storage-get', async (event, { key }) => {
+    return store.get(key)
+  })
+  
+  ipcMain.handle('storage-set', (event, { key, value }) => {
+    store.set(key, value)
   })
 
   app.on('activate', function () {
