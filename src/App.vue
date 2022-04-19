@@ -3,11 +3,11 @@ import axios from 'axios'
 
 import Article from './components/Article.vue'
 import Navigation from './components/Navigation.vue'
-import { computed, onMounted, provide, reactive, ref } from 'vue'
-
 import { filterArticles } from './modules/filterArticles'
-import { UPDATE_SNIPPET_INTERVAL_MSEC, URL_SNIPPET_MANAGER_API } from './config'
+import { computed, onMounted, provide, ref } from 'vue'
 
+const isProduction: boolean = import.meta.env.PROD
+const URL_SNIPPET_MANAGER_API = isProduction ? 'https://localhost:7137/api' : 'https://localhost:7137/api'
 
 interface IArticle {
     id: number,
@@ -49,6 +49,9 @@ const storage = {
 }
 
 
+var token;
+
+
 const mapArticlesFromApi = (data): IArticle[] => {
     return data.map(article => 
         ({
@@ -59,15 +62,16 @@ const mapArticlesFromApi = (data): IArticle[] => {
 }
 
 const fetchArticles = async () => {
-    let res;
+    let res
+    let articlesApi = [];
     try {
-        res = await axios.get(`${URL_SNIPPET_MANAGER_API}/snippet`)
+        res = await axios.get(`${URL_SNIPPET_MANAGER_API}/snippet`, { timeout: 2000 })
+        if(res == undefined || res.status != 200) return
+        articlesApi = mapArticlesFromApi(res.data)
     } catch (error) {
+        console.log(error)
         return
     }
-
-    if(res == undefined || res.status != 200) return
-    let articlesApi = mapArticlesFromApi(res.data)
 
     if(JSON.stringify(storage.articles) != JSON.stringify(articlesApi)) {
         storage.articles = articlesApi
@@ -85,7 +89,7 @@ const wait = (msec: number) => new Promise((resolve, reject) => {
 const autoUpdateArticles = async () => {
     while(1) {
         fetchArticles()
-        await wait(UPDATE_SNIPPET_INTERVAL_MSEC)
+        await wait(2000)
     }
 }
 
@@ -107,7 +111,6 @@ const filteredArticles = computed<IArticle[]>(() => {
 })
 
 const noArticles = computed<boolean>(() => filteredArticles.value.length == 0)
-
 </script>
 
 <template>
