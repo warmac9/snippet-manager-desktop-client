@@ -7,7 +7,7 @@ import { filterArticles } from './modules/filterArticles'
 import { computed, onMounted, provide, ref } from 'vue'
 
 const isProduction: boolean = import.meta.env.PROD
-const URL_SNIPPET_MANAGER_API = isProduction ? 'https://localhost:7137/api' : 'https://localhost:7137/api'
+axios.defaults.baseURL = isProduction ? 'https://localhost:7137/api' : 'https://localhost:7137/api'
 
 interface IArticle {
     id: number,
@@ -33,24 +33,60 @@ const writeClipboard = {
 provide('writeClipboard', writeClipboard)
 
 
-const articles = ref<IArticle[]>([])
-
 const storage = {
     get articles() {
-        let data = localStorage.getItem('articles')
-        if(data == null) return data
-        return JSON.parse(data)
+        return window.systemStorage.getArticles()
     },
     set articles(val) {
-        if(typeof val !== 'string')
-            val = JSON.stringify(val)
-        localStorage.setItem('articles', val)
+        window.systemStorage.setArticles(val)
+    },
+
+    get email() {
+        return window.systemStorage.getEmail()
+    },
+    set email(val) {
+        window.systemStorage.setEmail(val)
+    },
+
+    get password() {
+        return window.systemStorage.getPassword()
+    },
+    set password(val) {
+        window.systemStorage.setPassword(val)
+    },
+
+    get token() {
+        return window.systemStorage.getToken()
+    },
+    set token(val) {
+        window.systemStorage.setToken(val)
     }
 }
 
 
-var token;
+const validCreds = ref<boolean>(true)
+const credsEmail = ref<string>('')
+const credsPassword = ref<string>('')
 
+const axiosSetToken = (token: string) => {
+    if(typeof token == 'string')
+        axios.defaults.headers.common = { 'Authorization': `Bearer: ${token}` }
+}
+
+const fetchToken = async (email: string, password: string) => 
+    await axios.post('/login', { email: email, password: password })
+
+const validateCreds = async(email: string, password: string) => {
+    let res = await fetchToken(email, password)
+    if(res?.status != 200) return
+
+    credsEmail.value = email
+    credsPassword.value = password
+    validCreds.value = true
+}
+
+
+const articles = ref<IArticle[]>([])
 
 const mapArticlesFromApi = (data): IArticle[] => {
     return data.map(article => 
@@ -61,18 +97,25 @@ const mapArticlesFromApi = (data): IArticle[] => {
         }))
 }
 
-const fetchArticles = async () => {
-    let res
-    let articlesApi = [];
-    try {
-        res = await axios.get(`${URL_SNIPPET_MANAGER_API}/snippet`, { timeout: 2000 })
-        if(res == undefined || res.status != 200) return
-        articlesApi = mapArticlesFromApi(res.data)
-    } catch (error) {
-        console.log(error)
-        return
-    }
+const updateArticles = async () => {
+    let res = await axios.get('/snippet', { timeout: 2000 })
+        .catch(async (error) => {
+            if(error?.response?.status == 401) {
+                let token = await fetchToken(credsEmail.value, credsPassword.value)
+                    .catch(error => {
+                        if(error?.response?.status == 401) {
+                            validCreds.value = false
+                        }
+                        else
+                            console.error('Authorization post method failed')
+                    })
+                axiosSetToken(token)
+                res = await axios.get('/snippet', { timeout: 2000 })
+            }
+        })
 
+    if(res?.status != 200) return
+    let articlesApi = mapArticlesFromApi(res.data)
     if(JSON.stringify(storage.articles) != JSON.stringify(articlesApi)) {
         storage.articles = articlesApi
         articles.value = articlesApi
@@ -88,13 +131,18 @@ const wait = (msec: number) => new Promise((resolve, reject) => {
 
 const autoUpdateArticles = async () => {
     while(1) {
-        fetchArticles()
+        if(validCreds.value)
+            updateArticles()
         await wait(2000)
     }
 }
 
 onMounted(async () => {
-    if(storage.articles != null)
+    axiosSetToken(storage.token)
+    credsEmail.value = storage.email
+    credsPassword.value = storage.password
+
+    if(storage.articles != undefined)
         articles.value = storage.articles
 
     autoUpdateArticles()
@@ -114,7 +162,16 @@ const noArticles = computed<boolean>(() => filteredArticles.value.length == 0)
 </script>
 
 <template>
-    <div class="min-h-screen p-12 bg-zinc-50 select-none">
+    <div 
+        class="min-h-screen p-12 bg-zinc-50 select-none"
+        v-if="!validCreds"
+    >
+        <LoginForm @validateCreds="validateCreds(email, password)"></LoginForm>
+    </div>
+    <div 
+        class="min-h-screen p-12 bg-zinc-50 select-none"
+        v-if="validCreds"
+    >
         <Navigation @searchUpdate="(query) => searchQuery = query"></Navigation>
         <section class="py-6 space-y-6">
             <section class="grid grid-cols-3 gap-4">
