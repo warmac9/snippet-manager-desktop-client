@@ -1,11 +1,11 @@
 <script setup lang="ts">
+import Button from './Button.vue'
 import { inject, ref, onMounted } from 'vue'
-import Button from './components/Button.vue'
 
 defineEmits(['validateCreds'])
 
-const email = ref('')
-const password = ref('')
+const email = ref('koko123@gmail.com')
+const password = ref('Koko123!')
 
 </script>
 
@@ -25,9 +25,10 @@ const password = ref('')
                 class="w-full font-verdana text-3xl outline-none selection:bg-black selection:text-white"
                 maxlength="30"
                 placeholder="Password"
+                type="password"
             />
             <Button
-                @click="$emit('validateCreds', email.value, password.value)"
+                @click="$emit('validateCreds', email, password)"
             ></Button>
         </div>
     </div>

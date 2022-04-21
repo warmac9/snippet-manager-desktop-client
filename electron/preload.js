@@ -14,39 +14,31 @@ contextBridge.exposeInMainWorld('systemBrowser', {
 })
 
 contextBridge.exposeInMainWorld('systemStorage', {
-  getToken() {
-    ipcRenderer.invoke('storage-get', { key: 'auth.token' }).then(res => {
-      return res
-    })
+  async getArticles() {
+    return await ipcRenderer.invoke('storage-get', { key: 'articles' })
+  },
+  setArticles(articles) {
+    ipcRenderer.invoke('storage-set', { key: 'articles', value: articles })
+  },
+  
+  async getToken() {
+    return await ipcRenderer.invoke('storage-get', { key: 'auth.token' })
   },
   setToken(token) {
     ipcRenderer.invoke('storage-set', { key: 'auth.token', value: token })
   },
 
-  getEmail() {
-    ipcRenderer.invoke('storage-get', { key: 'auth.email' }).then(res => {
-      return res
-    })
+  async getEmail() {
+    return await ipcRenderer.invoke('storage-get', { key: 'auth.email' })
   },
   setEmail(email) {
-    storage.set('auth.email', email)
+    ipcRenderer.invoke('storage-set', { key: 'auth.email', value: email })
   },
 
-  getPassword() {
-    ipcRenderer.invoke('storage-get', { key: 'auth.password' }).then(res => {
-      return res
-    })
+  async getPassword() {
+    return await ipcRenderer.invoke('storage-get', { key: 'auth.password' })
   },
   setPassword(password) {
-    storage.set('auth.password', password)
-  },
-
-  getArticles() {
-    ipcRenderer.invoke('storage-get', { key: 'articles' }).then(res => {
-      return res
-    })
-  },
-  setArticles(articles) {
-    storage.set('articles', articles)
+    ipcRenderer.invoke('storage-set', { key: 'auth.password', value: password })
   }
 })
