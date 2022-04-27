@@ -2,34 +2,40 @@
 import Button from './Button.vue'
 import { inject, ref, onMounted } from 'vue'
 
-defineEmits(['validateCreds'])
+defineEmits(['validateLoginCreds'])
 
-const email = ref('koko123@gmail.com')
-const password = ref('Koko123!')
+defineProps({
+    email: {
+        type: String,
+        default: ''
+    }
+})
+
+const password = ref()
 
 </script>
 
 <template>
     <div
-        class="flex items-end grow p-2 bg-white border-3 border-black rounded-md shadow-[inset_0px_-4px] shadow-gray-300"
+        class="flex flex-col items-start grow p-6 space-y-5 bg-neutral-100 rounded-2xl"
     >
-        <div class="grow pt-2">
             <input
                 v-model="email"
-                class="w-full font-verdana text-3xl outline-none selection:bg-black selection:text-white"
+                class="w-full p-3 font-verdana text-3xl border-3 border-black rounded-md shadow-[inset_0px_-4px] shadow-gray-300 outline-none selection:bg-black selection:text-white"
                 maxlength="30"
                 placeholder="Email"
             />
             <input
                 v-model="password"
-                class="w-full font-verdana text-3xl outline-none selection:bg-black selection:text-white"
+                class="w-full p-3 font-verdana text-3xl border-3 border-black rounded-md shadow-[inset_0px_-4px] shadow-gray-300 outline-none selection:bg-black selection:text-white"
                 maxlength="30"
                 placeholder="Password"
                 type="password"
             />
             <Button
-                @click="$emit('validateCreds', email, password)"
+                title="Sign in"
+                @click="$emit('validateLoginCreds', email, password)"
             ></Button>
-        </div>
+
     </div>
 </template>

@@ -5,7 +5,7 @@ import Article from './components/Article.vue'
 import Navigation from './components/Navigation.vue'
 import LoginForm from './components/LoginForm.vue';
 import { filterArticles } from './modules/filterArticles'
-import { computed, onMounted, provide, ref } from 'vue'
+import { computed, onMounted, provide, ref, watch } from 'vue'
 
 const isProduction: boolean = import.meta.env.PROD
 axios.defaults.baseURL = isProduction ? 'https://localhost:7137/api' : 'https://localhost:7137/api'
@@ -65,9 +65,9 @@ const storage = {
 }
 
 
-const validCreds = ref<boolean>(true)
-const credsEmail = ref<string>('')
-const credsPassword = ref<string>('')
+const showLoginForm = ref<boolean>(true)
+const loginEmail = ref<string>('')
+const loginPassword = ref<string>('')
 
 const axiosSetToken = (token: string) => {
     if(typeof token == 'string')
@@ -77,23 +77,32 @@ const axiosSetToken = (token: string) => {
 const fetchToken = async (email: string, password: string) =>
     await axios.post('/account/login', { email: email, password: password })
 
-const validateCreds = async(email: string, password: string) => {
+const validateLoginCreds = async(email: string, password: string) => {
     let res = await fetchToken(email, password)
     if(res?.status != 200) return
 
-    credsEmail.value = email
-    credsPassword.value = password
+    loginEmail.value = email
+    loginPassword.value = password
     axiosSetToken(res.data)
 
     storage.email = email
     storage.password = password
     storage.token = res.data
 
-    validCreds.value = true
+    showLoginForm.value = true
 }
 
 
 const articles = ref<IArticle[]>([])
+
+watch(articles, async (newArticles) => {
+    let articles = newArticles ?? []
+    if(JSON.stringify(await storage.articles) != JSON.stringify(articles)) {
+        console.log('Storage articles updated')
+        storage.articles = JSON.parse(JSON.stringify(articles))
+    }
+})
+
 
 const mapArticlesFromApi = (data): IArticle[] => {
     return data.map(article => 
@@ -104,20 +113,22 @@ const mapArticlesFromApi = (data): IArticle[] => {
         }))
 }
 
-const updateArticles = async () => {
-    let res = await axios.get('/snippet', { timeout: 2000 })
+const syncArticles = async () => {
+    let res
+    res = await axios.get('/snippet', { timeout: 2000 })
         .catch(async (error) => {
             if(!error?.response?.status) return
             if(error.response.status == 401) {
-                let resToken = await fetchToken(credsEmail.value, credsPassword.value)
+                let resToken = await fetchToken(loginEmail.value, loginPassword.value)
                     .catch(error => {
                         if(!error?.response?.status) return
                         if(error.response.status == 401 || error.response.status == 400) {
-                            validCreds.value = false
+                            showLoginForm.value = false
                         }
                         else
-                            console.error('Authorization post method failed')
+                            console.error('Authentication failed')
                     })
+
                 if(resToken?.status != 200) return
                 axiosSetToken(resToken.data)
                 res = await axios.get('/snippet', { timeout: 2000 })
@@ -126,8 +137,9 @@ const updateArticles = async () => {
 
     if(res?.status != 200) return
     let articlesApi = mapArticlesFromApi(res.data)
-    if(JSON.stringify(await storage.articles) != JSON.stringify(articlesApi)) {
-        storage.articles = articlesApi
+    if(JSON.stringify(articles.value) != JSON.stringify(articlesApi)) {
+        console.log(`not equal ${JSON.stringify(articlesApi)}`);
+        
         articles.value = articlesApi
     }
 }
@@ -139,26 +151,29 @@ const wait = (msec: number) => new Promise((resolve, reject) => {
     }, msec)
 })
 
-const autoUpdateArticles = async () => {
+const autoSyncArticles = async () => {
     while(1) {
-        if(validCreds.value) {
+        if(showLoginForm.value) {
             try {
-                await updateArticles()
-            } catch (error) {}
+                await syncArticles()
+            } catch (error) {
+                console.error(error)
+            }
         }
+        let articles = await storage.articles
         await wait(2000)
     }
 }
 
 onMounted(async () => {
     axiosSetToken(await storage.token)
-    credsEmail.value = await storage.email
-    credsPassword.value = await storage.password
+    loginEmail.value = await storage.email
+    loginPassword.value = await storage.password
 
     if(await storage.articles != undefined)
         articles.value = await storage.articles
 
-    autoUpdateArticles()
+    autoSyncArticles()
 })
 
 
@@ -177,13 +192,16 @@ const noArticles = computed<boolean>(() => filteredArticles.value.length == 0)
 <template>
     <div 
         class="min-h-screen p-12 bg-zinc-50 select-none"
-        v-if="!validCreds"
+        v-if="!showLoginForm"
     >
-        <LoginForm @validateCreds="(email, password) => validateCreds(email, password)"></LoginForm>
+        <LoginForm
+            :email="loginEmail"
+            @validateLoginCreds="(email, password) => validateLoginCreds(email, password)"
+        ></LoginForm>
     </div>
     <div 
         class="min-h-screen p-12 bg-zinc-50 select-none"
-        v-if="validCreds"
+        v-if="showLoginForm"
     >
         <Navigation @searchUpdate="(query) => searchQuery = query"></Navigation>
         <section class="py-6 space-y-6">
