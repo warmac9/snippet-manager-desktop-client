@@ -8,11 +8,13 @@ interface IArticle {
 
 export const filterArticles = (articles: IArticle[], searchQuery: string) => {
     let prioritizedArticles = new PrioritizedList()
+    searchQuery = searchQuery.toLowerCase()
 
     articles.forEach(article => {
-        if(article.title.includes(searchQuery)) {
-            let numNotMatched = article.title.length - searchQuery.length
-            if(article.title.startsWith(searchQuery)) {
+        let title = article.title.toLowerCase()
+        if(title.includes(searchQuery)) {
+            let numNotMatched = title.length - searchQuery.length
+            if(title.startsWith(searchQuery)) {
                 prioritizedArticles.list.push({
                     priority: [
                         2,
